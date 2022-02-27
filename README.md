@@ -1,21 +1,23 @@
-# Architecture
+# ECS App Node
 
+ECS App Node
 
+## Architecture
 
-# Push images to ECR repository
+## Push images to ECR repository
 
-## Credentials configurations
+### Credentials configurations
 
 aws configure
 
-## List docker images
+### List docker images
 
 docker images
 
-## Tag docker image
+### Tag docker image
 
 docker tag [image_id] aws_account_id.dkr.ecr.region.amazonaws.com/my-repository:tag
 
-## Push docker image to ECR repository
+### Push docker image to ECR repository
 
 docker push aws_account_id.dkr.ecr.region.amazonaws.com/my-repository:tag
