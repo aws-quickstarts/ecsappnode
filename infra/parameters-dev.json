@@ -1,0 +1,7 @@
+{
+    "Parameters": {
+        "ClusterName": "FargateEcsCluster",
+        "VpcId": "vpc-xxx",
+        "TechTeamEmail": "gianluca.silva@itau-unibanco.com.br"
+    }
+}
