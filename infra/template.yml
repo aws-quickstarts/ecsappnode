@@ -1,5 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 
+Description: Creates an ECS App using NodeJS, a CloudWatch LogGroup and a Network Load Balancer
+
 Parameters:
 
   ClusterName:
@@ -12,15 +14,12 @@ Parameters:
 
   VpcId:
     Type: String
-    Default: vpc-02ec0c526a36797a1
 
   SubnetId1:
     Type: String
-    Default: subnet-0ac0a14bb682696e2
 
   SubnetId2:
     Type: String
-    Default: subnet-04f562ec743d9010c
 
   ListenerContainerPort:
     Type: String
@@ -28,49 +27,27 @@ Parameters:
   
   ExposedPortInDockerFile:
     Type: String
-    Default: 8080
+    Default: 3070
 
-  TechTeamEmail:
+  Owner:
     Type: String
-    Default: gian.hd@gmail.com
+    Default: tg
 
 Resources:
 
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /ecs/${ServiceName}
+      LogGroupName: !Sub /aws/ecs/${ServiceName}
       RetentionInDays: 7
-  
-  404MetricFilter:
-    Type: AWS::Logs::MetricFilter
-    DependsOn: CloudWatchLogGroup
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
     Properties:
-      LogGroupName: !Sub /ecs/${ServiceName}
-      FilterPattern: "[ip, identity, user_id, timestamp, request, status_code = 404, size, ...]"
-      MetricTransformations:
-        - MetricValue: 1
-          MetricNamespace: !Sub /ecs/${ServiceName}/404s
-          MetricName: !Sub /ecs/${ServiceName}/404Count
-  
-  404Alarm:
-    DependsOn: 404MetricFilter
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub Alarm${ServiceName}404s
-      AlarmDescription: !Sub Alarm${ServiceName}404s
-      MetricName: !Sub /ecs/${ServiceName}/404Count
-      Namespace: !Sub /ecs/${ServiceName}/404s
-      Statistic: Sum
-      Period: 60
-      EvaluationPeriods: 1
-      Threshold: 1
-      # AlarmActions:
-      #   - '{{resolve:ssm:/org/member/workload_local_sns_arn:1}}'
-      # OKActions:
-      #   - '{{resolve:ssm:/org/member/workload_local_sns_arn:1}}'
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
+      ClusterName: !Ref ClusterName
+      Tags:
+        - Key: Owner
+          Value: !Ref Owner
 
   ExecutionRole:
     Type: AWS::IAM::Role
@@ -89,37 +66,13 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 'ecr:GetAuthorizationToken'
-                  - 'ecr:BatchCheckLayerAvailability'
-                  - 'ecr:GetDownloadUrlForLayer'
-                  - 'ecr:BatchGetImage'
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
-                  - 'ssm:UpdateInstanceInformation'
-                  - 'ssm:ListInstanceAssociations'
-                  - 'ssm:DescribeInstanceProperties'
-                  - 'ssm:DescribeDocumentParameters'
-                  - 'ssm:GetParameter'
-                  - 'ssm:GetParameters'
-                  - 'ssm:GetParametersByPath'
-                  - 'secretsmanager:GetSecretValue'
-                  - 'secretsmanager:ListSecretVersionIds'
-                  - 'secretsmanager:ListSecrets'
-                  - 'secretsmanager:DescribeSecret'
-                  - 'secretsmanager:GetRandomPassword'
-                  - 'secretsmanager:GetResourcePolicy'
-                  - 'kms:Decrypt'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'secretsmanager:GetSecretValue'
-                Resource: '*'
-        - PolicyName: !Sub CloudWatchPolicy${ServiceName}
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'cloudwatch:PutMetricData'
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:CreateLogGroup
+                  - logs:PutLogEvents
                 Resource: '*'
 
   TaskRole:
@@ -133,56 +86,16 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName:  !Sub TaskRolePolicy${ServiceName}
+        - PolicyName: !Sub TaskRolePolicy${ServiceName}
           PolicyDocument:
             Statement:
               - Sid: ForSecrets2KMS
                 Effect: Allow
                 Action:
-                  - 'kms:Decrypt'
-                  - 'kms:Encrypt'
-                  - 'kms:GenerateDataKey'
-                  - 'kms:ReEncryptTo'
-                  - 'kms:GenerateDataKeyWithoutPlaintext'
-                  - 'kms:DescribeKey'
-                  - 'kms:GenerateDataKeyPairWithoutPlaintext'
-                  - 'kms:GenerateDataKeyPair'
-                  - 'kms:CreateGrant'
-                  - 'kms:ReEncryptFrom'
-                  - 'kms:ListGrants'
+                  - logs:CreateLogStream
+                  - logs:CreateLogGroup
+                  - logs:PutLogEvents
                 Resource: '*'
-                Condition:
-                  StringEquals:
-                    kms:ViaService: secretsmanager.sa-east-1.amazonaws.com
-              - Sid: ForECS
-                Effect: Allow
-                Action:
-                  - 'secretsmanager:DescribeSecret'
-                  - 'ssm:GetParameters'
-                  - 'ssm:ListInstanceAssociations'
-                  - 'ssm:GetParameter'
-                  - 'secretsmanager:ListSecretVersionIds'
-                  - 'secretsmanager:GetRandomPassword'
-                  - 'secretsmanager:GetResourcePolicy'
-                  - 'secretsmanager:GetSecretValue'
-                  - 'ssm:UpdateInstanceInformation'
-                  - 'ssm:DescribeDocumentParameters'
-                  - 'ssm:GetParametersByPath'
-                  - 'secretsmanager:ListSecrets'
-                  - 'ssm:DescribeInstanceProperties'
-                Resource: '*'
-
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub SgLb${ServiceName}
-      GroupDescription: !Sub SgLb${ServiceName}
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref ListenerContainerPort
-          ToPort: !Ref ListenerContainerPort
-          CidrIp: 0.0.0.0/0
 
   ServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -192,8 +105,8 @@ Resources:
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !Ref ListenerContainerPort
-          ToPort: !Ref ListenerContainerPort
+          FromPort: !Ref ExposedPortInDockerFile
+          ToPort: !Ref ExposedPortInDockerFile
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: "-1"
@@ -203,22 +116,20 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub Lb${ServiceName}
-      Type: application
+      Type: network
       Scheme: internal
-      SecurityGroups:
-        - !GetAtt LoadBalancerSecurityGroup.GroupId
       Subnets:
         - !Ref SubnetId1
         - !Ref SubnetId2
       Tags:
-        - Key: TechTeamEmail
-          Value: !Ref TechTeamEmail
+        - Key: Owner
+          Value: !Ref Owner
   
   LoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref LoadBalancer
-      Protocol: HTTP
+      Protocol: TCP
       Port: !Ref ListenerContainerPort
       DefaultActions:
         - Type: forward
@@ -229,12 +140,13 @@ Resources:
     Properties:
       Name: !Sub LbTarget${ServiceName}
       VpcId: !Ref VpcId
-      Protocol: HTTP
+      Protocol: TCP
       Port: !Ref ListenerContainerPort
       TargetType: ip
+      HealthCheckEnabled: true
       Tags:
-        - Key: TechTeamEmail
-          Value: !Ref TechTeamEmail
+        - Key: Owner
+          Value: !Ref Owner
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -248,7 +160,7 @@ Resources:
       NetworkMode: awsvpc
       ContainerDefinitions: 
         - Name: !Ref ServiceName
-          Image: 804473135082.dkr.ecr.us-east-2.amazonaws.com/ecsappnode:latest
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/ecsappnode:v1
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -280,7 +192,7 @@ Resources:
           TargetGroupArn: !Ref LoadBalancerTargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
+          AssignPublicIp: ENABLED # TODO Só funfa assim
           Subnets:
             - !Ref SubnetId1
             - !Ref SubnetId2
