@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: Creates an ECS App using NodeJS, a CloudWatch LogGroup and a Network Load Balancer
+Description: Creates an ECS App using NodeJS and a CloudWatch LogGroup
 
 Parameters:
 
@@ -112,42 +112,6 @@ Resources:
         - IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
 
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Sub Lb${ServiceName}
-      Type: network
-      Scheme: internal
-      Subnets:
-        - !Ref SubnetId1
-        - !Ref SubnetId2
-      Tags:
-        - Key: Owner
-          Value: !Ref Owner
-  
-  LoadBalancerListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref LoadBalancer
-      Protocol: TCP
-      Port: !Ref ListenerContainerPort
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref LoadBalancerTargetGroup
-
-  LoadBalancerTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Sub LbTarget${ServiceName}
-      VpcId: !Ref VpcId
-      Protocol: TCP
-      Port: !Ref ListenerContainerPort
-      TargetType: ip
-      HealthCheckEnabled: true
-      Tags:
-        - Key: Owner
-          Value: !Ref Owner
-
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     DependsOn: CloudWatchLogGroup
@@ -175,7 +139,6 @@ Resources:
 
   Service:
     Type: AWS::ECS::Service
-    DependsOn: LoadBalancerListener
     Properties:
       Cluster: !Ref ClusterName
       ServiceName: !Sub Service${ServiceName}
@@ -186,13 +149,9 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 100
-      LoadBalancers:
-        - ContainerName: !Ref ServiceName
-          ContainerPort: !Ref ExposedPortInDockerFile
-          TargetGroupArn: !Ref LoadBalancerTargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED # TODO Só funfa assim
+          AssignPublicIp: ENABLED
           Subnets:
             - !Ref SubnetId1
             - !Ref SubnetId2

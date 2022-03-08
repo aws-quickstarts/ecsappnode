@@ -1,9 +1,7 @@
 # ECS App Node
 
 This project creates:
-- CloudWatch LogGroup;
-- ECS App Node;
-- Network Load Balancer;
+- ECS App using NodeJS;
 
 ## Local deploy
 
