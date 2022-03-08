@@ -3,11 +3,10 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Creates an ECS App using NodeJS and a CloudWatch LogGroup
 
 Parameters:
-
   ClusterName:
     Type: String
     Default: FargateEcsCluster
-  
+
   ServiceName:
     Type: String
     Default: EcsAppNode
@@ -24,7 +23,7 @@ Parameters:
   ListenerContainerPort:
     Type: String
     Default: 80
-  
+
   ExposedPortInDockerFile:
     Type: String
     Default: 3070
@@ -34,7 +33,6 @@ Parameters:
     Default: tg
 
 Resources:
-
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -73,7 +71,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:CreateLogGroup
                   - logs:PutLogEvents
-                Resource: '*'
+                Resource: "*"
 
   TaskRole:
     Type: AWS::IAM::Role
@@ -95,7 +93,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:CreateLogGroup
                   - logs:PutLogEvents
-                Resource: '*'
+                Resource: "*"
 
   ServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -115,14 +113,14 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     DependsOn: CloudWatchLogGroup
-    Properties: 
+    Properties:
       Family: !Sub Family${ServiceName}
       ExecutionRoleArn: !Ref ExecutionRole
       TaskRoleArn: !Ref TaskRole
       Cpu: 256
       Memory: 512
       NetworkMode: awsvpc
-      ContainerDefinitions: 
+      ContainerDefinitions:
         - Name: !Ref ServiceName
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/ecsappnode:v1
           LogConfiguration:
