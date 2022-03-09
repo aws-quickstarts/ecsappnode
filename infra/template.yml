@@ -50,7 +50,7 @@ Resources:
   ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ExecutionRole${ServiceName}
+      RoleName: !Sub ${ServiceName}ExecutionRole
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -59,7 +59,7 @@ Resources:
             Action: sts:AssumeRole
       Path: /
       Policies:
-        - PolicyName: !Sub ExecutionRolePolicy${ServiceName}
+        - PolicyName: !Sub $ServiceName}ExecutionRolePolicy
           PolicyDocument:
             Statement:
               - Effect: Allow
@@ -76,7 +76,7 @@ Resources:
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub TaskRole${ServiceName}
+      RoleName: !Sub ${ServiceName}TaskRole
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -84,11 +84,10 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: !Sub TaskRolePolicy${ServiceName}
+        - PolicyName: !Sub {ServiceName}TaskRolePolicy$
           PolicyDocument:
             Statement:
-              - Sid: ForSecrets2KMS
-                Effect: Allow
+              - Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:CreateLogGroup
@@ -123,6 +122,7 @@ Resources:
       ContainerDefinitions:
         - Name: !Ref ServiceName
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/ecsappnode:v1
+          MemoryReservation: 256
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -131,7 +131,6 @@ Resources:
               awslogs-stream-prefix: ecs
           PortMappings:
             - ContainerPort: !Ref ExposedPortInDockerFile
-          MemoryReservation: 256
       RequiresCompatibilities:
         - FARGATE
 
