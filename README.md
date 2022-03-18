@@ -1,7 +1,18 @@
 # ecsappnode
 
 This project creates:
-- ECS App using NodeJS;
+- ECS App using NodeJS
+    - CloudWatch Logs enabled;
+    - Fargate compatibility;
+    - Public IP address enabled;
+
+## Helpful links
+
+- [What is Amazon Elastic Container Service?][1]
+- [What is AWS Fargate?][2]
+
+[1]: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html
+[2]: https://docs.aws.amazon.com/AmazonECS/latest/userguide/what-is-fargate.html
 
 ## Local deploy
 
