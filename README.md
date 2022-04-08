@@ -14,46 +14,66 @@ This project creates:
 [1]: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html
 [2]: https://docs.aws.amazon.com/AmazonECS/latest/userguide/what-is-fargate.html
 
-## Local deploy
+## Pre requirements
+
+- Repository created in Amazon ECR;
+
+## How to deploy
+
+### Local
 
 ```
-- npm start
+npm start
 ```
 
-- http://localhost:3070/healthcheck
-- http://localhost:3070/customers
+#### How to test
 
-## Docker deploy
+- curl http://localhost:3070/healthcheck
+- curl http://localhost:3070/customers
+
+### Docker
 
 ```
-- docker build -t ecsappnode
-- docker images
-- docker run -d -p 3070:3070 --name ecsappnode ecsappnode
+docker build -t ecsappnode .
+docker images
+docker run -d -p 3070:3070 --name ecsappnode ecsappnode
 ```
 
-## Push images to ECR repository
+#### How to test
+
+- curl http://localhost:3070/healthcheck
+- curl http://localhost:3070/customers
+
+### AWS
 
 Credentials configurations
 ```
-- aws configure
+aws configure
 ```
 
 Login
 ```
-- aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin aws_account_id.dkr.ecr.us-east-2.amazonaws.com 
+aws ecr get-login-password --region {Region} | docker login --username AWS --password-stdin {AccountId}.dkr.ecr.{Region}.amazonaws.com 
 ```
 
 List docker images
 ```
-- docker images
+docker images
 ```
 
 Tag docker image
 ```
-- docker tag [image_id] aws_account_id.dkr.ecr.region.amazonaws.com/my-repository:tag
+docker tag {ImageId} {RepositoryURI}:v1
 ```
 
 Push docker image to ECR repository
 ```
-- docker push aws_account_id.dkr.ecr.region.amazonaws.com/my-repository:tag
+docker push {RepositoryURI}:v1
 ```
+
+#### How to test
+
+Find the public IP following ECS -> Cluster created > Service created > Configuration and tasks tab > Task running
+
+- curl http://{TaskPublicIP}:3070/healthcheck
+- curl http://{TaskPublicIP}:3070/customers
