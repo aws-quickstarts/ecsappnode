@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: Creates an ECS App using FARGATE, NodeJS and a CloudWatch LogGroup
+Description: Creates an ECS App using NodeJS and Fargate
 
 Parameters:
   ClusterName:
@@ -93,8 +93,8 @@ Resources:
   ServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub sg-${ServiceName}
-      GroupDescription: !Sub sg-${ServiceName}
+      GroupName: !Sub Sg${ServiceName}
+      GroupDescription: !Sub Sg${ServiceName}
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -126,9 +126,9 @@ Resources:
           MemoryReservation: 256
           HealthCheck:
             Command:
-              !Sub [
+              [
                 "CMD-SHELL",
-                "curl -f http://localhost:${ExposedPortInDockerFile}/healthcheck || exit 1",
+                "curl -f http://localhost:3070/healthcheck || exit 1",
               ]
             Interval: 30
             Retries: 3
